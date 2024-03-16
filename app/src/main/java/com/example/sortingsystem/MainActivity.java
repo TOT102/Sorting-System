@@ -12,10 +12,10 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
-//Xzing
+
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
-//web
+
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -24,31 +24,11 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    ImageButton scanBtn;
-    ImageButton scanBtn2;
-    TextView messageText;
-    TextView amountEditText;
-
-    // Variables to store temporary values
-    private String scannedId;  // To store the ID after the first scan
-    private String scannedAmount;
-    private boolean isScanBtn2Clicked = false;
-
-    @Override
-    public void onClick(View v) {
-             // Implement the onClick method based on your needs
-        if (v.getId() == R.id.scanBtn) {
-            // Handle click for scanBtn
-            isScanBtn2Clicked = false;  // Reset the flag
-            startQrCodeScan();
-        } else if (v.getId() == R.id.scanBtn2) {
-            // Handle click for scanBtn2
-            isScanBtn2Clicked = true;  // Reset the flag
-            String amount = amountEditText.getText().toString();
-            startQrCodeScan();
-        }
-        // Add more conditions for other clickable views if needed
-    }
+    ImageButton scanBtn; // Used for obtaining the quantity for a given ID
+    ImageButton scanBtn2; // Used for modifying the quantity for a given ID
+    TextView messageText; // Used for visualizing the result from ^
+    TextView amountEditText; // Used for obtaining the quantity to be modified
+    private boolean isScanBtn2Clicked = false; // Flag variable
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,29 +39,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         scanBtn2 = findViewById(R.id.scanBtn2);
         amountEditText = findViewById(R.id.amount);
         messageText = findViewById(R.id.textContent);
-        /*
-        scanBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Action for the first button (e.g., initiate QR code scan)
-                startQrCodeScan();
-            }
-        });
 
-        scanBtn2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Action for the second button (e.g., get information from the web and append to web)
-                // Get the amount from the amountEditText
-                String amount = amountEditText.getText().toString();
-                // Start QR code scan
-                startQrCodeScan();
-            }
-        });*/
         scanBtn.setOnClickListener(this);
         scanBtn2.setOnClickListener(this);
     }
-    //Method to initiate QR code scan
+    @Override
+    public void onClick(View v) {
+        if (v.getId() == R.id.scanBtn) {
+            isScanBtn2Clicked = false;
+            startQrCodeScan();
+        } else if (v.getId() == R.id.scanBtn2) {
+            isScanBtn2Clicked = true;
+            //String amount = amountEditText.getText().toString();
+            startQrCodeScan();
+        }
+    }
+
     private void startQrCodeScan() {
         IntentIntegrator intentIntegrator = new IntentIntegrator(this);
         intentIntegrator.setPrompt("");
@@ -91,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        // Executes after the button is released and the QR code is scanned
         super.onActivityResult(requestCode, resultCode, data);
         IntentResult intentResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
 
@@ -98,18 +72,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if (intentResult.getContents() == null) {
                 Toast.makeText(getBaseContext(), "Cancelled", Toast.LENGTH_SHORT).show();
             } else {
-                // messageText.setText(intentResult.getContents());
-
-                // Check which button was clicked
                 if (requestCode == IntentIntegrator.REQUEST_CODE) {
                     if (isScanBtn2Clicked) {
-                        // Get the amount from the amountEditText
                         String amount = amountEditText.getText().toString();
 
-                        // Make a GET request to append information to the web based on the scanned ID and amount
                         appendToWeb(intentResult.getContents(), amount);
                     } else {
-                        // Perform the action for the first button if needed
                         getFromWeb(intentResult.getContents());
                     }
                 }
@@ -118,35 +86,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void getFromWeb(String id){
-        // Replace the URL with your actual URL
         String url = "https://script.google.com/macros/s/AKfycbzwqJ3_-LeXmhh8pAd6cf_fz8J-vJnZu_DUTP91T5R0ENxFmuiWfY0Y3A3GBoDI0-Q/exec?action=get&id=" + id;
 
         RequestQueue queue = Volley.newRequestQueue(this);
 
-        // Request a string response from the provided URL.
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        // Handle the response
-                        Log.d("VolleyResponse", response);
+                response -> {
+                    // Handle the response
+                    Log.d("VolleyResponse", response);
 
-                        // You can parse the response JSON or handle it as needed
-                        // Update your UI or perform other actions based on the response
-                        // For example, you can set the response in your messageText TextView
-                        messageText.setText(response);
-                    }
+                    // You can parse the response JSON or handle it as needed
+                    // Update your UI or perform other actions based on the response
+                    // For example, you can set the response in your messageText TextView
+                    messageText.setText(response);
                 },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        // Handle errors
-                        Log.e("VolleyError", "Error: " + error.getMessage());
-                        Toast.makeText(MainActivity.this, "Error in GET request", Toast.LENGTH_SHORT).show();
-                    }
+                error -> {
+                    Log.e("VolleyError", "Error: " + error.getMessage());
+                    Toast.makeText(MainActivity.this, "Error in GET request", Toast.LENGTH_SHORT).show();
                 });
 
-        // Add the request to the RequestQueue.
+
         queue.add(stringRequest);
     }
 
@@ -156,29 +115,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         RequestQueue queue = Volley.newRequestQueue(this);
 
-        // Request a string response from the provided URL.
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                new Response.Listener<String>() {
-                    @Override
-                    public void onResponse(String response) {
-                        // Handle the response
-                        Log.d("VolleyResponse", response);
 
-                        // You can parse the response JSON or handle it as needed
-                        // Update your UI or perform other actions based on the response
-                        messageText.setText(response);
-                    }
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                response -> {
+                    Log.d("VolleyResponse", response);
+
+                    messageText.setText(response);
                 },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        // Handle errors
-                        Log.e("VolleyError", "Error: " + error.getMessage());
-                        Toast.makeText(MainActivity.this, "Error in GET request", Toast.LENGTH_SHORT).show();
-                    }
+                error -> {
+                    Log.e("VolleyError", "Error: " + error.getMessage());
+                    Toast.makeText(MainActivity.this, "Error in GET request", Toast.LENGTH_SHORT).show();
                 });
 
-        // Add the request to the RequestQueue.
         queue.add(stringRequest);
     }
 }
